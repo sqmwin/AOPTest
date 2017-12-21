@@ -54,10 +54,33 @@ SpringTest框架学习笔记
 2. 三个依赖库
    1. commons-logging.jar
       1. 日志记录与的规范,相当于slf4j.jar的作用
+
    2. log4j.jar
       1. 日志记录的实现
+
    3. junit.jar
       1. 测试包
+
+   4. maven的pom.xml
+
+      -   ```xml
+                 <dependency>
+                     <groupId>junit</groupId>
+                     <artifactId>junit</artifactId>
+                     <version>4.12</version>
+                 </dependency>
+                 <dependency>
+                     <groupId>commons-logging</groupId>
+                     <artifactId>commons-logging</artifactId>
+                     <version>1.2</version>
+                 </dependency>
+                 <dependency>
+                     <groupId>log4j</groupId>
+                     <artifactId>log4j</artifactId>
+                     <version>1.2.17</version>
+                 </dependency>
+           ```
+          ​```
 
 ###2.1.2 定义接口与实体类
 
@@ -206,7 +229,7 @@ SpringTest框架学习笔记
   <bean id ="userService4" class="com.sqm.serive02.UserServiceImpl" scope="prototype"/>
   ```
 
-### 3.1.5 bean后处理器
+### 2.2.5 bean后处理器
 
 - 一种特殊bean,容器中所有bean在初始化时,均会**自动执行**该类的两个方法,因为是自动执行无需程序调用,所以无需指定id属性
 
@@ -451,7 +474,7 @@ public class MyCollections {
       <value>a</value>
       <value>b</value>
       <value>c</value>
-  </array>
+  	</array>
 </property>
 ```
 
@@ -468,7 +491,7 @@ public class MyCollections {
         <ref bean ="sqmStudent"/>
         <ref bean ="sqmStudent2"/>
         <ref bean ="liliStudent"/>
-    </list>
+    	</list>
   </property>  
   ```
 
@@ -484,7 +507,7 @@ public class MyCollections {
         <value>小学</value>
         <value>中学</value>
         <value>大学</value>
-    </set>
+   	</set>
   </property>  
   ```
 
@@ -499,7 +522,7 @@ public class MyCollections {
   	<map>
         <entry key="height" value="180"/>
         <entry key="weight" value="80"/>
-    </map>
+    	</map>
   </property>  
   ```
 
@@ -514,7 +537,7 @@ public class MyCollections {
   	<props>
         <prop key="tel">180</prop>
         <prop key="address">成都</prop>
-    </props>
+    	</props>
   </property>  
   ```
 
@@ -791,7 +814,7 @@ public class MyCollections {
          	<context:component-scan base-package="com.sqm.config"
          </beans>
          ```
-
+    
     4. 定义测试类
 
 
@@ -830,208 +853,4 @@ public class MyCollections {
 -   注解直观配置方便,但是注解以硬编码集成到代码中,修改的话需要修改代码
 -   xml修改则无需修改代码,只需重启服务器即可
 -   注解与xml同时使用**xml的优先级高于注解**,使用xml时bean类要有带参构造器或者setter
-
-
-# 3 AOP与Spring
-
--   aop 面向切面编程 : Aspect-Oriented Programming
-
-##3.1 引入AOP流程
-
-1.  项目1
-
-    1.  定义好接口与实现类,实现类中除了实现接口方法外再写两个**非业务方法**
-
-    2.  业务方法称为**主业务逻辑**
-
-    3.  非业务方法称为**交叉业务逻辑**
-
-        1.  doTransaction():用于事务处理
-        2.  doLog():用于日志处理****
-        3.  **主业务逻辑可以调用交叉业务逻辑**
-
-        ```java
-        public class StudentServiceImpl implements IService {
-            //主业务逻辑,实现接口
-            public void doSome() {
-                doTransaction();
-                System.out.println(this.getClass().getSimpleName() + " doSome()");
-                doLog();
-            }
-
-            //主业务逻辑,实现接口
-            public void doOther() {
-                doTransaction();
-                System.out.println(this.getClass().getSimpleName() + " doOther()");
-                doLog();
-            }
-
-            //交叉业务逻辑,处理事务
-            public void doTransaction() {
-                System.out.println("事务代码");
-            }
-
-            //交叉业务逻辑,处理日志
-            public void doLog(){
-                System.out.println("输出日志代码");
-            }
-        }
-        ```
-
-2.  项目2
-
-    -   若其他业务也要调用交叉业务逻辑,可以将这些交叉业务逻辑集中在一个类中,再在主业务类中**继承这个基类**,来实现这个类的这些交叉业务逻辑方法
-
-    -   ```java
-        public class BaseService {
-            //交叉业务逻辑,处理事务
-            public void doTransaction() {
-                System.out.println("事务代码");
-            }
-
-            //交叉业务逻辑,处理日志
-            public void doLog(){
-                System.out.println("输出日志代码");
-            }
-        }
-
-        //主业务类继承基类
-        public class StudentServiceImpl extends BaseService implements IService {
-            //主业务逻辑,实现接口
-            public void doSome() {
-                doTransaction();
-                System.out.println(this.getClass().getSimpleName() + " doSome()");
-                doLog();
-            }
-
-            //主业务逻辑,实现接口
-            public void doOther() {
-                doTransaction();
-                System.out.println(this.getClass().getSimpleName() + " doOther()");
-                doLog();
-            }
-        }
-        ```
-
-3.  项目3
-
-    -   若主业务类要继承其他类则会与现在的基类冲突,所以将这些交叉业务逻辑方法放入专门的**工具类(util;tool)或处理类(processor)**中,再由主业务类调用
-
-        -   交叉业务方法为静态,参数为调用的类的class
-
-    -   ```java
-        public class MyTransactionProcessor {
-            //交叉业务逻辑,处理事务
-            public static void doTransaction(Class<?> clazz) {
-                System.out.println("我是事务代码,执行我的类为" + clazz.getName());
-            }
-        }
-
-        public class MyLogProcessor {
-            //交叉业务逻辑,处理日志
-            public static void doLog(Class<?> clazz){
-                System.out.println("我是日志代码,执行我的是" + clazz.getName());
-            }
-        }
-
-        public class StudentServiceImpl implements IService {
-            //主业务逻辑,实现接口
-            public void doSome() {
-                MyTransactionProcessor.doTransaction(this.getClass());
-                System.out.println(this.getClass().getSimpleName() + " doSome()");
-                MyLogProcessor.doLog(this.getClass());
-            }
-
-            //主业务逻辑,实现接口
-            public void doOther() {
-                MyTransactionProcessor.doTransaction(this.getClass());
-                System.out.println(this.getClass().getSimpleName() + " doOther()");
-                MyLogProcessor.doLog(this.getClass());
-            }
-        }
-        ```
-
-4.  项目4
-
-    -   交叉业务与主业务的方法**耦合在一起**,当交叉业务增多时,影响主业务代码的可读性,降低了代码维护性
-
-    -   所以采用动态代理方式,在不修改主业务逻辑时,使用动态代理扩展和增强功能
-
-        -   新建一个动态代理类Handler,反射获取各个主业务方法,通过invoke方法扩展增强原方法
-            -   此方法要**实现InvocationHandler接口**
-
-    -   ```java
-        public class MyInvocationHandler implements InvocationHandler{
-            private Object target;
-
-            public MyInvocationHandler(Object target) {
-                this.target = target;
-            }
-
-            public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                //调用交叉业务逻辑
-                MyTransactionProcessor.doTransaction(target.getClass());
-                //调用主业务逻辑
-                Object result = method.invoke(target, args);
-                //调用交叉业务逻辑
-                MyLogProcessor.doLog(target.getClass());
-                return result;
-            }
-        }
-
-            //动态代理加强方法
-            @org.junit.Test
-            public void test02() {
-                IService service = new StudentServiceImpl();
-                IService proxyService = (IService) Proxy.newProxyInstance(service.getClass().getClassLoader(), service.getClass().getInterfaces(), new MyInvocationHandler(service));
-                proxyService.doSome();
-                proxyService.doOther();
-            }
-
-        ```
-
-    -   这样保证了主业务与交叉业务的解耦,代码整洁,便于维护
-
-## 3.2 AOP概述
-
-### 3.2.1 AOP简介
-
--   AOP（Aspect Orient Programming），面向切面编程，是面向对象编程 **OOP** 的一种补充。面向对象编程是从**静态**角度考虑程序的结构，而面向切面编程是从**动态**角度考虑程序运行过程。
--   AOP 底层，采用**动态代理**模式实现的。采用了两种代理：**JDK 的动态代理**,**CGLIB的动态代理**。
--   AOP中,交叉业务逻辑封装在**切面**中,利用AOP容器的功能将切面**织入**到主业务逻辑
-    -   交叉业务逻辑包括但不限于:通用的、与主业务逻辑无关的代码，如安全检查、事务、日志等
-
-### 3.2.2 AOP编程术语
-
->   #### （1）切面（Aspect）
->
->   ​	切面泛指**交叉业务逻辑**。上例中的事务处理、日志处理就可以理解为切面。常用的切面有通知与顾问。实际就是对主业务逻辑的一种增强。
->
->   #### （2）织入（Weaving）
->
->   ​	织入是指将切面代码插入到目标对象的过程。上例中MyInvocationHandler 类中的**invoke()**方法完成的工作，就可以称为织入。
->
->   #### （3）连接点（JoinPoint）
->
->   ​	连接点指可以被切面织入的方法。通常**业务接口中的方法**均为连接点。
->
->   #### （4）切入点（Pointcut）
->
->   ​	切入点指**切面具体织入的方法**。在 StudentServiceImpl 类中，若doSome()将被增强，而doOther()不被增强，则 doSome()为切入点，而 doOther()仅为连接点。被标记为 final 的方法是不能作为连接点与切入点的。因为最终的是不能被修改的，不能被增强的。
->
->   #### （5）目标对象（Target）
->
->   ​	目标对象指将要**被增强**的对象。 即包含主业务逻辑的类的对象。 上例中的StudentServiceImpl 的对象若被增强，则该类称为目标类，该类对象称为目标对象。当然，不被增强，也就无所谓目标不目标了。
->
->   #### （6）通知（Advice）
->
->   ​	通知是切面的一种实现，可以完成简单织入功能（织入功能就是在这里完成的）。上例中的 MyInvocationHandler 就可以理解为是一种通知。换个角度来说，**通知定义了增强代码切入到目标代码的时间点**，是目标方法执行之前执行，还是之后执行等。通知类型不同，切入时间不同。切入点定义切入的位置，通知定义切入的时间。
->
->   #### （7）顾问（Advisor）
->
->   ​	顾问是切面的另一种实现，能够将通知以更为复杂的方式织入到目标对象中，是**将通知包装为更复杂切面的装配器**。
-
-
-
-### 3.2.3 AOP编程环境搭建
 

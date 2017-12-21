@@ -8,7 +8,7 @@ package com.sqm.service;
  * @author sqm
  * @version 1.0
  */
-public interface IService {
+public interface StudentService {
     void doSome();
-    void doOther();
+    int doOther(int a);
 }

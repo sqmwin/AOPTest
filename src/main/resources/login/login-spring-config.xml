@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <!--配置代理目标对象-->
+    <bean class="test.sqm.login.service.impl.UserServiceImpl" id="userServiceTarget"/>
+    <!--配置切面:通知bean-->
+    <bean class="test.sqm.login.advice.MyThrowsAdvice" id="myThrowsAdvice"/>
+    <!--配置代理-->
+    <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="userServiceThrowsProxy">
+        <property name="target" ref="userServiceTarget"/>
+        <property name="interceptorNames" value="myThrowsAdvice"/>
+    </bean>
+</beans>

@@ -2,14 +2,118 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
-    <bean class="com.sqm.pojo.School" id="sqmSchool">
-        <property name="name" value="swjtu"/>
+    <!--注册目标类-->
+    <bean class="com.sqm.service.StudentServiceImpl" id="studentServiceTarget"/>
+    <!---->
+    <!--注册通知切面:前置通知类的bean-->
+    <bean class="com.sqm.advice.MyMethodBeforeAdvice" id="myMethodBeforeAdvice"/>
+
+    <!--注册代理工厂bean(ProxyFactoryBean类)的bean-->
+    <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="studentServiceBeforeProxy">
+        <!--目标类属性name为target,ref指定目标对象bean的id-->
+        <!--ref属性也可以改为value属性,值不变-->
+        <property name="target" ref="studentServiceTarget"/>
+        <!--目标对象实现的接口,要通过value指定全类名-->
+        <!--此属性可不设置,ProxyFactoryBean类中可自动检测到目标对象的接口(通过jdk中的Proxy动态代理-->
+        <!--若目标对象没有实现接口,此属性同样无需设置,此时使用的是cglib动态代理-->
+        <!--<property name="interfaces" value="com.sqm.service.StudentService"/>-->
+        <!--指定切面,这里是通知,这里通过value属性指定对应通知的bean的id,而不是通过ref属性指定-->
+        <!--因为属性名为interceptorNames,是xxx的名称,其对应值是字符串,而不是对象-->
+        <property name="interceptorNames" value="myMethodBeforeAdvice"/>
+    </bean>
+    <!---->
+    <!--配置切面:注册后置通知-->
+    <bean class="com.sqm.advice.MyAfterReturningAdvice" id="myAfterReturningAdvice"/>
+    <!--配置代理bean-->
+    <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="studentServiceAfterProxy">
+        <property name="target" ref="studentServiceTarget"/>
+        <property name="interceptorNames" value="myAfterReturningAdvice"/>
+    </bean>
+    <!---->
+    <!--配置切面：方法拦截器-->
+    <bean class="com.sqm.interceptor.MyMethodInterceptor" id="myMethodInterceptor"/>
+    <!--配置代理bean-->
+    <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="studentServiceInterceptProxy">
+        <property name="target" ref="studentServiceTarget"/>
+        <property name="interceptorNames" value="myMethodInterceptor"/>
+    </bean>
+    <!---->
+    <!--代理中织入多个切面 -->
+    <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="studentServiceAdviceProxy">
+        <property name="target" ref="studentServiceTarget"/>
+        <property name="interceptorNames">
+            <list>
+                <value>myMethodBeforeAdvice</value>
+                <value>myAfterReturningAdvice</value>
+                <value>myMethodInterceptor</value>
+            </list>
+        </property>
+    </bean>
+    <!---->
+    <!--使用CGLIB生成代理对象:方式1:代理bean增加一个name为proxyTargetClass属性property,value为true-->
+    <!--方式2:property name="optimize" value="true"-->
+    <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="studentServiceCglibProxy">
+        <property name="target" ref="studentServiceTarget"/>
+        <property name="interceptorNames" value="myMethodBeforeAdvice"/>
+        <property name="optimize" value="true"/>
+        <property name="proxyTargetClass" value="true"/>
+    </bean>
+    <!---->
+    <!--配置切面:顾问:名称匹配方法切入点顾问-->
+    <bean class="org.springframework.aop.support.NameMatchMethodPointcutAdvisor" id="nameMatchMethodPointcutAdvisor">
+        <!--顾问属性:advice:指定的通知-->
+        <property name="advice" ref="myMethodBeforeAdvice"/>
+        <!--顾问属性:要启用顾问的方法所匹配的名称:第一种:-->
+        <!--<property name="mappedNames" value="doSome,doValue"/>-->
+        <!--指定方法名称匹配列表第二种:-->
+        <property name="mappedNames">
+            <list>
+                <!--<value>doSome</value>-->
+                <value>doOther</value>
+            </list>
+        </property>
+        <!--顾问属性:通过指定方法名称包含的字符:第三种:如以do开头的所有方法-->
+        <!--<property name="mappedName" value="do*"/>-->
+        <!--第四种:指定单个方法-->
+        <!--<property name="mappedName" value="doSome"/>-->
+    </bean>
+    <!--配置代理bean-->
+    <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="studentServiceNameMatchAdvisorProxy">
+        <property name="target" ref="studentServiceTarget"/>
+        <property name="interceptorNames" value="nameMatchMethodPointcutAdvisor"/>
+    </bean>
+    <!---->
+    <!--配置切面:顾问:正则表达式顾问-->
+    <bean class="org.springframework.aop.support.RegexpMethodPointcutAdvisor" id="regexpMethodPointcutAdvisor">
+        <property name="advice" ref="myMethodBeforeAdvice"/>
+        <!--<property name="pattern" value=".*do.*"/>-->
+        <!--通过patterns指定正则表达式-->
+        <property name="patterns">
+            <list>
+                <value>.*doS.*</value>
+                <!--<value>.*doO.*</value>-->
+            </list>
+        </property>
+    </bean>
+    <!--配置正则表达式顾问代理-->
+    <bean class="org.springframework.aop.framework.ProxyFactoryBean" id="studentServiceRegexpAdvisorProxy">
+        <property name="target" ref="studentServiceTarget"/>
+        <property name="interceptorNames" value="regexpMethodPointcutAdvisor"/>
+    </bean>
+    <!---->
+    <!--默认顾问自动代理生成器,直接获取目标bean-->
+    <!--<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"/>-->
+    <!---->
+    <!--TeacherServiceTarget-->
+    <bean class="com.sqm.service.TeacherService" id="teacherServiceTarget"/>
+    <!---->
+    <!--bean名称自动代理生成器-->
+    <bean class="org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator">
+        <!--要代理的bean的id-->
+        <property name="beanNames" value="studentServiceTarget,teacherServiceTarget"/>
+        <!--要使用的切面,既可以是Advice,也可以是Advisor-->
+        <property name="interceptorNames" value="myAfterReturningAdvice,nameMatchMethodPointcutAdvisor"/>
     </bean>
 
-    <bean class="com.sqm.pojo.Student" id="sqm">
-        <property name="name" value="sqm"/>
-        <property name="age" value="22"/>
-        <property name="school" ref="sqmSchool"/>
-    </bean>
 
 </beans>
